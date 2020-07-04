@@ -4,6 +4,8 @@ const morgan = require('morgan');
 const userRouter = require('./_routes/userRoute');
 const categoryRouter = require('./_routes/categoryRoute');
 const productRouter = require('./_routes/productRoute');
+const errorController = require('./_controllers/errorController');
+const AppError = require('./_utilities/appError');
 
 const app = express();
 
@@ -23,5 +25,13 @@ app.get('/', (req, res) => {
     }
   });
 });
+
+app.all('*', (req, res, next) => {
+  return next(
+    new AppError(`Can not find any route that matches ${req.originalUrl} `)
+  );
+});
+
+app.use(errorController);
 
 module.exports = app;

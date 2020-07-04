@@ -1,39 +1,82 @@
-const Product = require("../_models/productModel");
+const Product = require('../_models/productModel');
+const catchAsync = require('../_utilities/catchAsync');
+const AppError = require('../_utilities/appError');
 
-exports.getAllProducts = (req, res) => {
+exports.createProduct = catchAsync(async (req, res, next) => {
+  const products = await Product.create(req.body);
   res.status(200).json({
-    status: "success",
+    status: 'success',
     results: 1,
     data: {
-      products: {
-        name: "Zola Plantinium Royal Bag",
-        Size: 13,
-        price: "$67.59",
-      },
-    },
+      products
+    }
   });
-};
+});
 
-exports.getProduct = (req, res) => {
+exports.getAllProducts = catchAsync(async (req, res, next) => {
+  const products = await Product.find();
+
   res.status(200).json({
-    status: "success",
+    status: 'success',
+    results: products.length,
+    data: {
+      products
+    }
+  });
+});
+
+exports.getProduct = catchAsync(async (req, res, next) => {
+  const product = await Product.findById(req.params.id);
+
+  if (!product) {
+    return next(
+      new AppError(`There is no product with this id: ${req.params.id}`, 404)
+    );
+  }
+  res.status(200).json({
+    status: 'success',
     results: 1,
     data: {
-      products: {
-        name: "Zola Plantinium Royal Bag",
-        Size: 13,
-        price: "$67.59",
-        productId: req.params.id,
-      },
-    },
+      product
+    }
   });
-};
+});
 
-exports.createProduct = (req, res) => {
+exports.updateProduct = catchAsync(async (req, res, next) => {
+  const updatedProduct = await Product.findByIdAndUpdate(
+    req.params.id,
+    req.body,
+    { new: true, runValidators: true }
+  );
+
+  if (!updatedProduct) {
+    return next(
+      new AppError(`There is no product with this id: ${req.params.id}`, 404)
+    );
+  }
   //   console.log(req.body);
   res.status(200).json({
-    status: "success",
+    status: 'success',
     results: 1,
-    data: req.body,
+    data: {
+      product: updatedProduct
+    }
   });
-};
+});
+
+exports.deleteProduct = catchAsync(async (req, res, next) => {
+  const deletedProduct = await Product.findByIdAndDelete(req.params.id);
+
+  if (!deletedProduct) {
+    return next(
+      new AppError(`There is no product with this id: ${req.params.id}`, 404)
+    );
+  }
+
+  console.log(deletedProduct);
+
+  res.status(201).json({
+    status: 'success',
+    message: 'Product has been deleted'
+  });
+});

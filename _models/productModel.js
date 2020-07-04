@@ -5,7 +5,8 @@ const productSchema = mongoose.Schema(
     name: {
       type: String,
       require: [true, 'Please tell us the product name'],
-      trim: true
+      trim: true,
+      unique: true
     },
     description: {
       type: String,

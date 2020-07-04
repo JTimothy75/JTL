@@ -1,20 +1,10 @@
 const mongoose = require('mongoose');
-// const bcrypt = require('bcrypt');
+const bcrypt = require('bcrypt');
 const validator = require('validator');
 // const uuidv1 = require('uuidv1');
 
 const userSchema = mongoose.Schema(
   {
-    // firstName: {
-    //   type: String,
-    //   trim: true,
-    //   required: [true, 'Please give us your first name']
-    // },
-    // lastName: {
-    //   type: String,
-    //   trim: true,
-    //   required: [true, 'Please give us your last name']
-    // },
     name: {
       type: String,
       trim: true,
@@ -26,23 +16,30 @@ const userSchema = mongoose.Schema(
       required: [true, 'Please give us your email'],
       unique: true,
       lowercase: true,
-      validator: [validator.isEmail, 'Please provide a valid email.']
+      validate: [validator.isEmail, 'Please provide a valid email.']
     },
     password: {
       type: String,
-      trim: true,
       required: [true, 'Please give us your email'],
-      mimlength: 8
+      mimlength: 8,
+      select: false
     },
     passwordConfirm: {
       type: String,
-      trim: true,
-      required: [true, 'Please give us your email']
+      required: [true, 'Please give us your email'],
+      validate: {
+        validator: function(el) {
+          return el === this.password;
+        },
+        message: 'Your password does not match'
+      }
+    },
+    passwordChangedAt: {
+      type: Date
     },
     interest: {
       type: String,
-      trim: true,
-      required: [true, 'Please give us your last name']
+      trim: true
     },
     role: {
       type: String,
@@ -58,14 +55,32 @@ const userSchema = mongoose.Schema(
     history: {
       type: Array,
       default: []
-    },
-    address: {
-      type: Array,
-      default: []
     }
   },
   { timestamps: true }
 );
+
+userSchema.pre('save', async function(next) {
+  if (!this.isModified('password')) return next();
+
+  this.password = await bcrypt.hash(this.password, 12);
+
+  this.passwordConfirm = undefined;
+
+  return next();
+});
+
+userSchema.methods.checkPassword = async function(candidatePassword, password) {
+  return await bcrypt.compare(candidatePassword, password);
+};
+
+userSchema.methods.passNotChangedAfterToken = function(tokenDate) {
+  if (this.passwordChangedAt) {
+    return Math.floor(this.passwordChangedAt.getTime() / 1000) > tokenDate;
+  }
+
+  return false;
+};
 
 const User = mongoose.model('user', userSchema);
 
