@@ -1,5 +1,11 @@
 const express = require('express');
 const morgan = require('morgan');
+const path = require('path');
+const rateLimit = require('express-rate-limit');
+const helmet = require('helmet');
+const mongoSanitize = require('express-mongo-sanitize');
+const xss = require('xss-clean');
+const hpp = require('hpp');
 
 const userRouter = require('./_routes/userRoute');
 const categoryRouter = require('./_routes/categoryRoute');
@@ -9,15 +15,57 @@ const AppError = require('./_utilities/appError');
 
 const app = express();
 
-// Middlewares
-app.use(express.json());
+// Global Middlewares
+// Set security HTTP headers
+app.use(helmet());
+
+// Limit request from same api
+const limiter = rateLimit({
+  max: 300,
+  windowMs: 60 * 60 * 1000,
+  message: 'Too many requests from this IP, please try again in an hour!'
+});
+
+app.use('/api', limiter);
+
+// Body parser, reading data from the body into req.body
+app.use(
+  express.json({
+    limit: '10kb'
+  })
+);
+
+// Sanitizing data against NoSQL query injection
+app.use(mongoSanitize());
+
+// Data sanitization against XSS
+app.use(xss());
+
+// Prevent parameter pollution
+app.use(
+  hpp({
+    whitelist: ['price', 'ratingsQuantity', 'ratingsAverage', 'maxGroupSize']
+  })
+);
+
+// Serving static file
+app.use(express.static(path.join(__dirname, '_public')));
 app.use(morgan('dev'));
 
 // Routers
 app.use('/api/v1/user', userRouter);
 app.use('/api/v1/product', productRouter);
+app.use('/api/v1/category', categoryRouter);
 
 app.get('/', (req, res) => {
+  res.cookie('JTL', 'worthyAndReliable_passionAndLove', {
+    expires: new Date(
+      Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000
+    ),
+    httpOnly: true,
+    secure: req.secure || req.headers['x-forwarded-proto'] === 'https'
+  });
+
   res.status(200).json({
     status: 'success',
     data: {
