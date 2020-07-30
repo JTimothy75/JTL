@@ -8,6 +8,7 @@ const xss = require('xss-clean');
 const hpp = require('hpp');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
+const compression = require('compression');
 
 const userRouter = require('./_routes/userRoute');
 const categoryRouter = require('./_routes/categoryRoute');
@@ -68,6 +69,8 @@ app.use(
 // Serving static file
 app.use(express.static(path.join(__dirname, '_public')));
 app.use(morgan('dev'));
+
+app.use(compression());
 
 // Routers
 app.use('/api/v1/user', userRouter);

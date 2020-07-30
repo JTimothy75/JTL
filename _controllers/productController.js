@@ -81,7 +81,7 @@ exports.setNonZeroQtyProductQuery = catchAsync(async (req, res, next) => {
 });
 
 exports.setSearchQuery = catchAsync(async (req, res, next) => {
-  console.log(req.query);
+  // console.log(req.query);
   if (req.query.search) {
     req.specialQuery = {
       // name: { $regex: req.params.searchString, $options: 'i' }
