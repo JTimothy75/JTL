@@ -6,24 +6,24 @@ const router = express.Router();
 
 router
   .route('/')
-  .get(categoryController.getAllCategorys)
+  .get(categoryController.getAllCategories)
   .post(
     authController.protect,
-    authController.restrictTo('admin'),
+    authController.restrictTo('admin', 'product_manager'),
     categoryController.createCategory
   );
 
 router
   .route('/id/:id')
-  .get(categoryController.getAllCategorys)
+  .get(categoryController.getCategory)
   .patch(
     authController.protect,
-    authController.restrictTo('admin'),
+    authController.restrictTo('admin', 'product_manager'),
     categoryController.updateCategory
   )
   .delete(
     authController.protect,
-    authController.restrictTo('admin'),
+    authController.restrictTo('admin', 'product_manager'),
     categoryController.deleteCategory
   );
 

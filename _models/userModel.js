@@ -19,6 +19,30 @@ const userSchema = mongoose.Schema(
       lowercase: true,
       validate: [validator.isEmail, 'Please provide a valid email.']
     },
+    emailConfirmToken: String,
+    emailConfirm: {
+      type: Boolean,
+      default: false
+    },
+    photo: {
+      type: String,
+      default: 'default.jpeg'
+    },
+    gender: {
+      type: String,
+      enum: ['male', 'female']
+    },
+    tel: Number,
+    contactAddress: [
+      {
+        streetAddress: String,
+        city: String,
+        province: String,
+        country: String,
+        zip: Number,
+        defaultAddress: Boolean
+      }
+    ],
     interest: {
       type: String,
       trim: true
@@ -27,27 +51,39 @@ const userSchema = mongoose.Schema(
       type: String,
       default: 'user',
       trim: true,
-      enum: ['user', 'admin'],
-      required: [true, 'Please give us your email']
+      enum: ['user', 'admin', 'product_manager'],
+      required: [true, 'Role is required']
     },
 
-    cart: {
-      type: Array,
-      default: []
-    },
-    history: {
-      type: Array,
-      default: []
-    },
+    cart: [
+      {
+        product: {
+          type: mongoose.Schema.ObjectId,
+          ref: 'Product',
+          unique: true,
+          required: [true, 'Cart item must have to a Product!']
+        },
+        name: {
+          type: String,
+          ref: 'User',
+          required: [true, 'Cart item must belong to a name']
+        },
+        date: {
+          type: Date,
+          defualt: Date.now()
+        }
+      }
+    ],
+
     password: {
       type: String,
-      required: [true, 'Please give us your email'],
+      required: [true, 'Please enter your password'],
       mimlength: 8,
       select: false
     },
     passwordConfirm: {
       type: String,
-      required: [true, 'Please give us your email'],
+      required: [true, 'Please enter your confirm password'],
       validate: {
         validator: function(el) {
           return el === this.password;
@@ -64,7 +100,11 @@ const userSchema = mongoose.Schema(
       select: false
     }
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+  }
 );
 
 userSchema.pre('save', async function(next) {
@@ -77,7 +117,11 @@ userSchema.pre('save', async function(next) {
   return next();
 });
 
-userSchema.pre(/^find/, function(next) {
+userSchema.pre(/^findB/, function(next) {
+  this.populate({
+    path: 'cart.product',
+    select: 'price priceDiscount name description ratingsAverage imageCover'
+  });
   this.find({ active: { $ne: false } });
   next();
 });
@@ -107,6 +151,17 @@ userSchema.methods.createForgotPasswordToken = function() {
   return resetPasswordToken;
 };
 
-const User = mongoose.model('user', userSchema);
+userSchema.methods.createEmailConfirmToken = function() {
+  const emailConfirmToken = crypto.randomBytes(32).toString('hex');
+
+  this.emailConfirmToken = crypto
+    .createHash('sha256')
+    .update(emailConfirmToken)
+    .digest('hex');
+
+  return emailConfirmToken;
+};
+
+const User = mongoose.model('User', userSchema);
 
 module.exports = User;

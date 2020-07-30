@@ -19,13 +19,13 @@ const handleValidatorErrorDB = err => {
 };
 
 const handleJWTError = () =>
-  new AppError('Invalid token please login again', 401);
+  new AppError('You are not logged in! please login to get access', 401);
 
 const handleTokenExpiredError = () =>
   new AppError('Your token has expired! Please login again', 401);
 
 const sendErrorDev = (err, res) => {
-  res.status(err.statusCode).json({
+  return res.status(err.statusCode).json({
     status: err.status,
     message: err.message,
     error: err,
@@ -35,18 +35,17 @@ const sendErrorDev = (err, res) => {
 
 const sendErrorProd = (err, res) => {
   if (err.isOperational) {
-    res.status(err.statusCode || 500).json({
+    return res.status(err.statusCode || 500).json({
       status: err.status || 'Error',
       message: err.message
     });
-  } else {
-    console.error('Error 💥💥', err);
-
-    res.status(500).json({
-      status: 'Error',
-      message: 'Something went wrong'
-    });
   }
+  console.error('Error 💥💥', err, '-----Error Stack------', err.stack);
+
+  return res.status(500).json({
+    status: 'Error',
+    message: 'Something went wrong'
+  });
 };
 
 module.exports = (err, req, res, next) => {
@@ -58,6 +57,8 @@ module.exports = (err, req, res, next) => {
   } else if (process.env.NODE_ENV === 'production') {
     let error = { ...err };
     error.message = err.message;
+    error.stack = err.stack;
+    error.errmsg = err.errmsg;
 
     if (error.name === 'CastError') error = handleCastErrorDB(error);
 

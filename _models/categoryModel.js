@@ -9,9 +9,19 @@ const categorySchema = mongoose.Schema(
       unique: true
     }
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+  }
 );
 
-const Category = mongoose.model('category', categorySchema);
+categorySchema.virtual('products', {
+  ref: 'Product',
+  foreignField: 'category',
+  localField: '_id'
+});
+
+const Category = mongoose.model('Category', categorySchema);
 
 module.exports = Category;

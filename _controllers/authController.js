@@ -39,6 +39,16 @@ const createSendToken = (user, statusCode, req, res) => {
   });
 };
 
+const unactivatedAccountRes = res => {
+  res.status(403).json({
+    status: 'success',
+    data: {
+      message:
+        'Please check your email and click on the link sent to you to confirm and activate acount'
+    }
+  });
+};
+
 exports.signup = catchAsync(async (req, res, next) => {
   const newUser = await User.create({
     name: req.body.name,
@@ -47,10 +57,50 @@ exports.signup = catchAsync(async (req, res, next) => {
     passwordConfirm: req.body.passwordConfirm
   });
 
-  const url = 0;
-  await new Email(newUser, url).sendWelcome();
+  const emailConfirmToken = newUser.createEmailConfirmToken();
+  await newUser.save({ validateBeforeSave: false });
 
-  createSendToken(newUser, 201, req, res);
+  const emailConfirmLink = `${req.protocol}://${req.get(
+    'host'
+  )}/api/v1/user/confirmEmail/${emailConfirmToken}`;
+
+  // const url = 0;
+  await new Email(newUser, emailConfirmLink).sendWelcome();
+
+  if (!newUser.emailConfirm === true) {
+    return unactivatedAccountRes(res);
+  }
+
+  // createSendToken(newUser, 201, req, res);
+});
+
+exports.confirmEmail = catchAsync(async (req, res, next) => {
+  const hashedEmailConfirmToken = crypto
+    .createHash('sha256')
+    .update(req.params.token)
+    .digest('hex');
+
+  const userConfirm = await User.findOne({
+    emailConfirmToken: hashedEmailConfirmToken
+  });
+
+  if (!userConfirm)
+    next(
+      new AppError(
+        `There is no user with this link: ${req.protocol}://${req.get(
+          'host'
+        )}/api/v1/user/confirmEmail/${
+          req.params.token
+        }. Please sign up to have an account`
+      )
+    );
+
+  userConfirm.emailConfirm = true;
+  userConfirm.emailConfirmToken = undefined;
+
+  await userConfirm.save({ validateBeforeSave: false });
+
+  createSendToken(userConfirm, 200, req, res);
 });
 
 exports.login = catchAsync(async (req, res, next) => {
@@ -65,19 +115,27 @@ exports.login = catchAsync(async (req, res, next) => {
     return next(new AppError('You entered a wrong email or password', 401));
   }
 
+  if (!user.emailConfirm === true) {
+    return unactivatedAccountRes(res);
+  }
+
   createSendToken(user, 201, req, res);
 });
 
 exports.protect = catchAsync(async (req, res, next) => {
+  let token;
   if (
-    !req.headers.authorization ||
-    !req.headers.authorization.startsWith('Bearer')
-  )
-    return next(
-      new AppError('You are not logged in, please login to gain access', 401)
-    );
+    req.headers.authorization &&
+    req.headers.authorization.startsWith('Bearer')
+  ) {
+    token = req.headers.authorization.split(' ')[1];
+  } else if (req.cookies.jwt) {
+    token = req.cookies.jwt;
+  }
 
-  const token = req.headers.authorization.split(' ')[1];
+  // return next(
+  //   new AppError('You are not logged in, please login to gain access', 401)
+  // );
 
   if (!token)
     return next(
@@ -106,7 +164,12 @@ exports.protect = catchAsync(async (req, res, next) => {
       )
     );
 
+  if (!freshUser.emailConfirm === true) {
+    return unactivatedAccountRes(res);
+  }
+
   req.user = freshUser;
+  req.parentId = freshUser._id;
 
   next();
 });
@@ -115,7 +178,9 @@ exports.restrictTo = (...permittedRole) => {
   return (req, res, next) => {
     try {
       if (!permittedRole.includes(req.user.role)) {
-        throw Error('Admin resources! Access denied');
+        throw Error(
+          `${permittedRole.join(', ').toUpperCase()} resources! Access denied`
+        );
       }
       next();
     } catch (error) {
@@ -146,6 +211,10 @@ exports.isLoggedIn = catchAsync(async (req, res, next) => {
       return next();
     }
 
+    if (!currentUser.emailConfirm === true) {
+      return unactivatedAccountRes(res);
+    }
+
     // console.log(currentUser);
 
     // There is a logged in user
@@ -174,7 +243,7 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
   try {
     const passwordResetLink = `${req.protocol}://${req.get(
       'host'
-    )}/api/v1/users/resetPassword/${resetToken}`;
+    )}/api/v1/user/resetPassword/${resetToken}`;
 
     await new Email(user, passwordResetLink).sendPasswordReset();
 

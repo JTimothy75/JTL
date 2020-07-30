@@ -13,17 +13,15 @@ module.exports = class Email {
   newTransport() {
     if (process.env.NODE_ENV === 'production') {
       return nodemailer.createTransport({
-        service: 'mailtrap',
-        port: process.env.MAILTGUN_PORT,
-        host: process.env.MAILTGUN_HOST,
+        port: process.env.MAIGUN_PORT,
+        host: process.env.MAILGUN_HOST,
         auth: {
-          user: process.env.MAILTGUN_USER,
-          pass: process.env.MAILTGUN_PASS
+          user: process.env.MAILGUN_USER,
+          pass: process.env.MAILGUN_PASS
         }
       });
     }
     return nodemailer.createTransport({
-      service: 'mailtrap',
       port: process.env.MAILTRAP_PORT,
       host: process.env.MAILTRAP_HOST,
       auth: {
