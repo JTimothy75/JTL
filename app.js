@@ -20,6 +20,7 @@ const errorController = require('./_controllers/errorController');
 const AppError = require('./_utilities/appError');
 
 const app = express();
+app.enable('trust proxy');
 app.use(cors());
 // Access-Control-Allow-Origin *
 // api.natours.com, front-end natours.com
@@ -80,16 +81,6 @@ app.use('/api/v1/review', reviewRouter);
 app.use('/api/v1/order', orderRouter);
 
 app.get('/', orderController.createOrderCheckout, (req, res) => {
-  // console.log(req.cookies);
-
-  res.cookie('JTL', 'worthyAndReliable_passionAndLove', {
-    expires: new Date(
-      Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000
-    ),
-    httpOnly: true,
-    secure: req.secure || req.headers['x-forwarded-proto'] === 'https'
-  });
-
   res.status(200).json({
     status: 'success',
     data: {
