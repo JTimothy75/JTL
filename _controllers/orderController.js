@@ -121,7 +121,7 @@ const createOrderCheckout = async session => {
     shippingAddress
   } = session.metadata;
 
-  const amount = session.amount_total;
+  const amount = session.amount_total / 100;
   let { product } = session.metadata;
   product = JSON.parse(product);
 
