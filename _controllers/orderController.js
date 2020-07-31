@@ -29,7 +29,7 @@ exports.getCheckoutSession = catchAsync(async (req, res, next) => {
       images: [
         `${req.protocol}://${req.get('host')}/img/products/${el.imageCover}`
       ],
-      amount: el.price * 100,
+      amount: el.price * 100 - el.priceDiscount,
       currency: 'usd',
       quantity: qty
     });
@@ -37,7 +37,7 @@ exports.getCheckoutSession = catchAsync(async (req, res, next) => {
       productID: el.id,
       name: el.name,
       colour: col,
-      price: el.price,
+      price: el.price - el.priceDiscount,
       quantity: qty
     });
   });
@@ -76,41 +76,90 @@ exports.getCheckoutSession = catchAsync(async (req, res, next) => {
   });
 });
 
-exports.createOrderCheckout = catchAsync(async (req, res, next) => {
+// exports.createOrderCheckout = catchAsync(async (req, res, next) => {
+//   const {
+//     orderId,
+//     user,
+//     deliveryName,
+//     contactNumber,
+//     shippingAddress
+//   } = req.query;
+
+//   let { product } = req.query;
+//   if (
+//     !orderId &&
+//     !product &&
+//     !user &&
+//     !deliveryName &&
+//     !contactNumber &&
+//     !shippingAddress
+//   ) {
+//     // res.json({ message: 'Payment failed' });
+//     return next();
+//   }
+
+//   product = JSON.parse(product);
+
+//   await Order.create({
+//     orderId,
+//     product,
+//     user,
+//     deliveryName,
+//     contactNumber,
+//     shippingAddress
+//   });
+
+//   res.redirect(`${req.protocol}://${req.get('host')}/`);
+// });
+
+const createOrderCheckout = async session => {
   const {
     orderId,
     user,
     deliveryName,
     contactNumber,
     shippingAddress
-  } = req.query;
+  } = session.metadata;
 
-  let { product } = req.query;
-  if (
-    !orderId &&
-    !product &&
-    !user &&
-    !deliveryName &&
-    !contactNumber &&
-    !shippingAddress
-  ) {
-    // res.json({ message: 'Payment failed' });
-    return next();
-  }
-
+  const amount = session.amount_total;
+  let { product } = session.metadata;
   product = JSON.parse(product);
 
   await Order.create({
     orderId,
+    amount,
     product,
     user,
     deliveryName,
     contactNumber,
     shippingAddress
   });
+  //
+};
 
-  res.redirect(`${req.protocol}://${req.get('host')}/`);
-});
+exports.webhookCheckout = (req, res, next) => {
+  //
+  const signature = req.headers['stripe-signature'];
+  let event;
+
+  try {
+    event = stripe.webhooks.constructEvent(
+      req.body,
+      signature,
+      process.env.STRIPE_WEBHOOK_SECRET
+    );
+  } catch (err) {
+    return res.status(400).send(`Webhook error: ${err.message}`);
+  }
+
+  if (event.type === 'checkout.session.completed') {
+    createOrderCheckout(event.data.object);
+  }
+
+  res.status(200).json({
+    received: true
+  });
+};
 
 exports.createOrder = factory.createOne(Order);
 exports.updateOrder = factory.updateOne(Order);

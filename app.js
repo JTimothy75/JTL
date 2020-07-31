@@ -44,6 +44,11 @@ const limiter = rateLimit({
 
 app.use('/api', limiter);
 
+app.post(
+  '/webhook-checkout',
+  express.raw({ type: 'application/json' }),
+  orderController.webhookCheckout
+);
 // Body parser, reading data from the body into req.body
 app.use(
   express.json({
@@ -80,7 +85,7 @@ app.use('/api/v1/category', categoryRouter);
 app.use('/api/v1/review', reviewRouter);
 app.use('/api/v1/order', orderRouter);
 
-app.get('/', orderController.createOrderCheckout, (req, res) => {
+app.get('/', (req, res) => {
   res.status(200).json({
     status: 'success',
     data: {

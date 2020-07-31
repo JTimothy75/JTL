@@ -26,6 +26,10 @@ const orderSchema = new mongoose.Schema(
       required: [true, 'Order must belong to a User!']
     },
     amount: {
+      type: Number,
+      required: [true, 'Order must have a price.']
+    },
+    amountCal: {
       type: Number
       // required: [true, 'Order must have a price.']
     },
@@ -58,7 +62,7 @@ const orderSchema = new mongoose.Schema(
 );
 
 orderSchema.pre('save', function(next) {
-  this.amount = this.product.reduce((preVal, curVal) => {
+  this.amountCal = this.product.reduce((preVal, curVal) => {
     return curVal.price * curVal.quantity + preVal;
   }, 0);
 

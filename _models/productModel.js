@@ -54,6 +54,7 @@ const productSchema = mongoose.Schema(
     ],
     priceDiscount: {
       type: Number,
+      default: 0,
       validate: {
         validator: function(val) {
           // this only points to current doc on NEW document creation
