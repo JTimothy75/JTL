@@ -178,10 +178,17 @@ exports.restrictTo = (...permittedRole) => {
   return (req, res, next) => {
     try {
       if (!permittedRole.includes(req.user.role)) {
-        throw Error(
-          `${permittedRole.join(', ').toUpperCase()} resources! Access denied`
+        return next(
+          new AppError(
+            `${permittedRole
+              .join(', ')
+              .toUpperCase()} resources! Access denied`,
+            403
+          )
+          // new AppError('You do not have permission to perform this action', 403)
         );
       }
+
       next();
     } catch (error) {
       res.json({

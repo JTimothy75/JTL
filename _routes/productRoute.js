@@ -30,32 +30,34 @@ router
     authController.protect,
     authController.restrictTo('admin', 'product_manager'),
     productController.uploadProductImages,
-    productController.resizeProductImages,
     productController.createProduct
   );
 router
-  .route('/id/:id')
+  .route('/:id')
   .get(productController.getProduct)
   .patch(
     authController.protect,
-    authController.restrictTo('admin', 'product_manager'),
+    authController.restrictTo('root_admin', 'admin', 'product_manager'),
     productController.uploadProductImages,
-    productController.resizeProductImages,
     productController.updateProduct
   )
   .delete(
     authController.protect,
-    authController.restrictTo('admin', 'product_manager'),
+    authController.restrictTo('root_admin', 'admin', 'product_manager'),
     productController.deleteProduct
   );
 
-router.use('/productId/:productId/reviews', reviewRouter);
+router.use('/:productId/reviews', reviewRouter);
 
 router.use(
   authController.protect,
-  authController.restrictTo('admin', 'product_manager')
+  authController.restrictTo('root_admin', 'admin', 'product_manager')
 );
-router.post('/:parentId/colour', productController.addProductColour);
+router.post(
+  '/:parentId/colour',
+  productController.uploadProductImages,
+  productController.addProductColour
+);
 router
   .route('/:parentId/colour/:id')
   .patch(productController.updateProductColour)

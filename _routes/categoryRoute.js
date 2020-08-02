@@ -9,21 +9,21 @@ router
   .get(categoryController.getAllCategories)
   .post(
     authController.protect,
-    authController.restrictTo('admin', 'product_manager'),
+    authController.restrictTo('root_admin', 'admin', 'product_manager'),
     categoryController.createCategory
   );
 
 router
-  .route('/id/:id')
+  .route('/:id')
   .get(categoryController.getCategory)
   .patch(
     authController.protect,
-    authController.restrictTo('admin', 'product_manager'),
+    authController.restrictTo('root_admin', 'admin', 'product_manager'),
     categoryController.updateCategory
   )
   .delete(
     authController.protect,
-    authController.restrictTo('admin', 'product_manager'),
+    authController.restrictTo('root_admin', 'admin', 'product_manager'),
     categoryController.deleteCategory
   );
 

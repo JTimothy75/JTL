@@ -64,7 +64,11 @@ module.exports = (err, req, res, next) => {
 
     if (error.code === 11000) error = handleDublicateFieldsDB(error);
 
-    if (error.name === 'ValidationError') error = handleValidatorErrorDB(error);
+    if (
+      error.name === 'ValidationError' ||
+      error.stack.startsWith('ValidationError')
+    )
+      error = handleValidatorErrorDB(error);
 
     if (error.name === 'JsonWebTokenError') error = handleJWTError();
 

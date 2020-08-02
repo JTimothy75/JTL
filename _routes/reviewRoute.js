@@ -24,6 +24,9 @@ router
     reviewController.updateReview
   )
   .get(reviewController.getReview)
-  .delete(authController.restrictTo('admin'), reviewController.deleteReview);
+  .delete(
+    authController.restrictTo('root_admin', 'admin'),
+    reviewController.deleteReview
+  );
 
 module.exports = router;

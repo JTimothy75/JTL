@@ -1,8 +1,5 @@
 const mongoose = require('mongoose');
 const slugify = require('slugify');
-// const Review = require('./reviewModel');
-
-// const Category = require('../_models/categoryModel');
 
 const productSchema = mongoose.Schema(
   {
@@ -30,9 +27,11 @@ const productSchema = mongoose.Schema(
       type: String,
       required: [true, 'Please describe the product']
     },
-    price: {
-      type: Number,
-      required: [true, 'Please tell us the price of the product']
+    lowPrice: {
+      type: Number
+    },
+    highPrice: {
+      type: Number
     },
     colour: [
       {
@@ -49,16 +48,27 @@ const productSchema = mongoose.Schema(
             'Please tell us the quantity for this colour of the product'
           ],
           trim: true
+        },
+        price: {
+          type: Number,
+          required: [true, 'Please tell us the price of the product']
+        },
+        discountPrice: {
+          type: Number
+        },
+        colourImage: {
+          type: String,
+          trim: true
         }
       }
     ],
-    priceDiscount: {
+    priceDiscountPercent: {
       type: Number,
       default: 0,
       validate: {
         validator: function(val) {
           // this only points to current doc on NEW document creation
-          return val < this.price;
+          return val < 100;
         },
         message: 'Discount price ({VALUE}) should be below regular price'
       }
@@ -80,7 +90,6 @@ const productSchema = mongoose.Schema(
     },
     quantity: {
       type: Number,
-      required: [true, 'Please tell us the quantity of the product'],
       trim: true
     },
     sales: {
@@ -89,12 +98,10 @@ const productSchema = mongoose.Schema(
     },
     imageCover: {
       type: String,
-      // required: [true, 'Please upload an image of the product'],
       trim: true
     },
     images: {
       type: [String],
-      // required: [true, 'Please upload an image of the product'],
       trim: true
     },
     category: {
@@ -114,7 +121,6 @@ const productSchema = mongoose.Schema(
   }
 );
 
-// productSchema.index({ price: 1 });
 productSchema.index({ price: 1, ratingsAverage: -1 });
 productSchema.index({ slug: 1 });
 
@@ -124,7 +130,24 @@ productSchema.virtual('reviews', {
   localField: '_id'
 });
 
-productSchema.pre('save', function(next) {
+[].sort();
+
+productSchema.pre('save', async function(next) {
+  this.colour.forEach(el => {
+    el.colour = el.colour.toLowerCase();
+    el.discountPrice = (
+      el.price -
+      (this.priceDiscountPercent * el.price) / 100
+    ).toFixed(2);
+  });
+
+  this.lowPrice = Math.min(...this.colour.map(el => el.discountPrice)).toFixed(
+    2
+  );
+  this.highPrice = Math.max(...this.colour.map(el => el.discountPrice)).toFixed(
+    2
+  );
+
   this.slug = slugify(this.name, { lower: true });
 
   next();

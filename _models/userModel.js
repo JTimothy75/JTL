@@ -51,7 +51,7 @@ const userSchema = mongoose.Schema(
       type: String,
       default: 'user',
       trim: true,
-      enum: ['user', 'admin', 'product_manager'],
+      enum: ['user', 'product_manager', 'admin', 'root_admin'],
       required: [true, 'Role is required']
     },
 

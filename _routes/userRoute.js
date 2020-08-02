@@ -35,15 +35,16 @@ router.patch(
   userController.resizeUserPhoto,
   userController.updateMe
 );
+router.get('/order/', userController.getMyOrder);
 router.delete('/deleteMe', userController.deleteMe);
 
-router.use(authController.restrictTo('admin'));
-router.route('/').get(userController.getAllUser);
+router.use(authController.restrictTo('root_admin', 'admin'));
+router.route('/').get(userController.excludeAdmin, userController.getAllUser);
 
 router
   .route('/:id')
-  .get(userController.getUser)
-  .patch(userController.updateUser)
+  .get(userController.excludeAdmin, userController.getUser)
+  .patch(userController.excludeAdmin, userController.updateUser)
   .delete(userController.deleteUser);
 
 module.exports = router;

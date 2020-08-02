@@ -16,29 +16,66 @@ exports.getCheckoutSession = catchAsync(async (req, res, next) => {
   products.forEach(el => {
     let col;
     let qty;
-    req.body.items.forEach(el2 => {
-      if (el2.productId.toString() === el._id.toString()) {
-        col = el2.colour;
-        qty = el2.quantity;
-      }
-    });
+    req.body.items.forEach(orderItemsEl => {
+      if (orderItemsEl.productId.toString() === el._id.toString()) {
+        if (
+          !el.colour.some(
+            matchedEl =>
+              matchedEl.colour.toLowerCase() ===
+              orderItemsEl.colour.toLowerCase()
+          )
+        ) {
+          return next(
+            new AppError(
+              `Please pick another colour, of ${
+                el.name
+              }, ${orderItemsEl.colour.toLowerCase()} is out of stock`,
+              404
+            )
+          );
+        }
 
-    lineItems.push({
-      name: el.name,
-      description: el.summary,
-      images: [
-        `${req.protocol}://${req.get('host')}/img/products/${el.imageCover}`
-      ],
-      amount: el.price * 100 - el.priceDiscount,
-      currency: 'usd',
-      quantity: qty
-    });
-    prod.push({
-      productID: el.id,
-      name: el.name,
-      colour: col,
-      price: el.price - el.priceDiscount,
-      quantity: qty
+        const icolour = el.colour.findIndex(
+          colourEl =>
+            colourEl.colour.toLowerCase() === orderItemsEl.colour.toLowerCase()
+        );
+
+        if (el.colour[icolour].quantity < orderItemsEl.quantity) {
+          return next(
+            new AppError(
+              `Your have ordered more than the available quantity of ${orderItemsEl.colour.toLowerCase()} ${
+                el.name
+              }, Please reduce your order to be less than or equal ${
+                el.colour[icolour].quantity
+              }`,
+              404
+            )
+          );
+        }
+
+        col = orderItemsEl.colour.toLowerCase();
+        qty = orderItemsEl.quantity;
+
+        lineItems.push({
+          name: el.name,
+          description: el.summary,
+          images: [
+            `${req.protocol}://${req.get('host')}/img/products/${el.imageCover}`
+          ],
+          amount: (el.colour[icolour].discountPrice * 100).toFixed(0),
+          currency: 'usd',
+          quantity: qty
+        });
+        prod.push({
+          productID: el.id,
+          name: el.name,
+          colour: col,
+          price: el.colour[icolour].discountPrice,
+          quantity: qty
+        });
+
+        console.log(lineItems, el.colour[icolour].discountPrice * 100, icolour);
+      }
     });
   });
 
@@ -46,15 +83,7 @@ exports.getCheckoutSession = catchAsync(async (req, res, next) => {
   const session = await stripe.checkout.sessions.create({
     payment_method_types: ['card'],
     success_url: `${req.protocol}://${req.get('host')}`,
-    // success_url: `${req.protocol}://${req.get(
-    //   'host'
-    // )}/?product=${JSON.stringify(prod)}&user=${
-    //   req.user.id
-    // }&orderId=${crypto.randomBytes(8).toString('hex')}&deliveryName=${
-    //   req.body.deliveryName
-    // }&contactNumber=${req.body.contactNumber}&shippingAddress=${
-    //   req.body.shippingAddress
-    // }`,
+
     cancel_url: `${req.protocol}://${req.get('host')}/api/v1/product/`,
     customer_email: req.user.email,
     client_reference_id: req.user.id,
@@ -75,42 +104,6 @@ exports.getCheckoutSession = catchAsync(async (req, res, next) => {
     session
   });
 });
-
-// exports.createOrderCheckout = catchAsync(async (req, res, next) => {
-//   const {
-//     orderId,
-//     user,
-//     deliveryName,
-//     contactNumber,
-//     shippingAddress
-//   } = req.query;
-
-//   let { product } = req.query;
-//   if (
-//     !orderId &&
-//     !product &&
-//     !user &&
-//     !deliveryName &&
-//     !contactNumber &&
-//     !shippingAddress
-//   ) {
-//     // res.json({ message: 'Payment failed' });
-//     return next();
-//   }
-
-//   product = JSON.parse(product);
-
-//   await Order.create({
-//     orderId,
-//     product,
-//     user,
-//     deliveryName,
-//     contactNumber,
-//     shippingAddress
-//   });
-
-//   res.redirect(`${req.protocol}://${req.get('host')}/`);
-// });
 
 const createOrderCheckout = async session => {
   const {
@@ -161,8 +154,70 @@ exports.webhookCheckout = (req, res, next) => {
   });
 };
 
+exports.updateOrderCustomerStatus = catchAsync(async (req, res, next) => {
+  const doc = await Order.findById({ _id: req.params.orderId });
+  const SubDoc = doc.product.id(req.params.itemId);
+  if (!SubDoc) {
+    return next(
+      new AppError(`There is no item with this id: ${req.params.id}`, 404)
+    );
+  }
+
+  SubDoc.customerStatus = req.body.customerStatus;
+
+  await doc.save();
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      doc
+    }
+  });
+});
+
+exports.updateOrder = catchAsync(async (req, res, next) => {
+  const doc = await Order.findById({ _id: req.params.orderId });
+  const SubDoc = doc.product.id(req.params.itemId);
+  if (!SubDoc) {
+    return next(
+      new AppError(`There is no item with this id: ${req.params.id}`, 404)
+    );
+  }
+
+  SubDoc.status = req.body.status;
+
+  await doc.save();
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      doc
+    }
+  });
+});
+
+exports.deleteOrderItem = catchAsync(async (req, res, next) => {
+  const doc = await Order.findById({ _id: req.params.orderId });
+  const SubDoc = doc.product.id(req.params.itemId);
+
+  if (!SubDoc) {
+    return next(
+      new AppError(`There is no item with this id: ${req.params.id}`, 404)
+    );
+  }
+
+  doc.product.id(req.params.id).remove();
+  await doc.save();
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      doc
+    }
+  });
+});
+
 exports.createOrder = factory.createOne(Order);
-exports.updateOrder = factory.updateOne(Order);
 exports.getAllOrder = factory.getAll(Order);
 exports.getOrder = factory.getOne(Order);
 exports.deleteOrder = factory.deleteOne(Order);

@@ -13,7 +13,29 @@ const orderSchema = new mongoose.Schema(
         name: String,
         colour: String,
         price: Number,
-        quantity: Number
+        quantity: Number,
+        status: {
+          type: String,
+          default: 'Not processed',
+          enum: [
+            'Not processed',
+            'Processing',
+            'Shipped',
+            'Delivered',
+            'Cancelled'
+          ]
+        },
+        customerStatus: {
+          type: String,
+          default: 'waiting for order',
+          enum: [
+            'Received',
+            'Not Delivered',
+            'Order is damage',
+            'Order not as discribe',
+            'waiting for order'
+          ]
+        }
       }
     ],
     orderId: {
@@ -29,7 +51,7 @@ const orderSchema = new mongoose.Schema(
       type: Number,
       required: [true, 'Order must have a price.']
     },
-    amountCal: {
+    calAmount: {
       type: Number
       // required: [true, 'Order must have a price.']
     },
@@ -62,7 +84,7 @@ const orderSchema = new mongoose.Schema(
 );
 
 orderSchema.pre('save', function(next) {
-  this.amountCal = this.product.reduce((preVal, curVal) => {
+  this.calAmount = this.product.reduce((preVal, curVal) => {
     return curVal.price * curVal.quantity + preVal;
   }, 0);
 
@@ -70,7 +92,7 @@ orderSchema.pre('save', function(next) {
 });
 
 orderSchema.pre(/^find/, function(next) {
-  this.populate('user').populate({
+  this.populate({
     path: 'product.productID',
     select: 'name'
   });
@@ -85,9 +107,9 @@ orderSchema.post('save', async function() {
     prod.forEach(queryEl => {
       if (queryEl.id.toString() === orderEl.productID.toString()) {
         const i = queryEl.colour.findIndex(el => el.colour === orderEl.colour);
-        queryEl.sales += orderEl.quantity;
-        queryEl.quantity -= orderEl.quantity;
-        queryEl.colour[i].quantity -= orderEl.quantity;
+        queryEl.sales += +orderEl.quantity;
+        queryEl.quantity -= +orderEl.quantity;
+        queryEl.colour[i].quantity -= +orderEl.quantity;
       }
     });
   });
