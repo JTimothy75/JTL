@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://js.stripe.com/v3/"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <title>Document</title>
+  </head>
+  <body>
+    <button id="checkout-button">Checkout</button>
+
+    <script>
+      var checkoutButton = document.getElementById('checkout-button');
+
+      const stripe = Stripe('pk_test_aoYuCuk8MHC4CF3nPGX0XIql00mK38R3B7');
+
+      checkoutButton.addEventListener('click', async function() {
+        try {
+          let session;
+          const data = await axios.post(
+            'https://jtlfashion.herokuapp.com/api/v1/order/checkout-session',
+            {
+              items: [
+                {
+                  productId: '5f22cc3c4a76f99f983b7952',
+                  colour: 'RED',
+                  quantity: 5
+                },
+                {
+                  productId: '5f22cc4d4a76f99f983b7953',
+                  colour: 'BLUE',
+                  quantity: 3
+                },
+                {
+                  productId: '5f22cd1c4a76f99f983b7954',
+                  colour: 'BLUE',
+                  quantity: 8
+                }
+              ],
+              deliveryName: 'Timothy Joseph',
+              contactNumber: 2348091968605,
+              shippingAddress: 'A11 Poly Quarters, Tudun Wada, Kaduna. Nigeria.'
+            },
+            {
+              headers: {
+                //   'Content-Type': 'application/json',
+                Authorization:
+                  'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVmMGYwZGU3ZjhmODViY2Y3NDRjZmI2OSIsImlhdCI6MTU5NTEyODM0MywiZXhwIjoxNjAyOTA0MzQzfQ.CiBoUS7mA5Xl8F0D1aY0xXMl7WZ05kUKVWJ4zye_6Ng'
+              }
+            }
+          );
+
+          console.log(data);
+
+          stripe
+            .redirectToCheckout({
+              // Make the id field from the Checkout Session creation API response
+              // available to this file, so you can provide it as argument here
+              // instead of the {{CHECKOUT_SESSION_ID}} placeholder.
+              sessionId: data.data.session.id
+            })
+            .then(function(result) {
+              // If `redirectToCheckout` fails due to a browser or network
+              // error, display the localized error message to your customer
+              // using `result.error.message`.
+            });
+        } catch (error) {
+          // console.log(error);
+        }
+      });
+    </script>
+  </body>
+</html>
