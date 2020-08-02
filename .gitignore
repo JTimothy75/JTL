@@ -2,4 +2,3 @@ node_modules/
 *.env
 codePlay.js
 _public/html
-html/
