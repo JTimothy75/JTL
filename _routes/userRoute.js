@@ -26,6 +26,10 @@ router
 router.post('/cart', userController.addCart);
 router.route('/cart/:id').delete(userController.removingCart);
 
+// Adding,and Deleting User wish List
+router.post('/wish-list', userController.addWishList);
+router.route('/wish-list/:id').delete(userController.removingWishList);
+
 router.patch('/updateMyPassword', authController.updatePassword);
 
 router.get('/me', userController.getMe, userController.getUser);

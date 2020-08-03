@@ -125,6 +125,45 @@ exports.getMyOrder = catchAsync(async (req, res, next) => {
 exports.addCart = factory.createSubOne(User, 'cart');
 exports.removingCart = factory.deleteSubOne(User, 'cart');
 
+exports.addWishList = catchAsync(async (req, res, next) => {
+  const doc = await User.findByIdAndUpdate(
+    { _id: req.user._id },
+    { $push: { wishList: req.body.product } },
+    { new: true, runValidators: true }
+  );
+
+  if (!doc) {
+    return next(
+      new AppError(`There is no document with this id: ${req.params.id}`, 404)
+    );
+  }
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      doc
+    }
+  });
+});
+exports.removingWishList = catchAsync(async (req, res, next) => {
+  const doc = await User.findById({ _id: req.user._id });
+
+  if (!doc.wishList.includes(req.params.id)) {
+    return next(
+      new AppError(`There is no document with this id: ${req.params.id}`, 404)
+    );
+  }
+  doc.wishList.splice(doc.wishList.indexOf(req.params.id), 1);
+  await doc.save({ validateBeforeSave: false });
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      doc
+    }
+  });
+});
+
 exports.addContactAddress = factory.createSubOne(User, 'contactAddress');
 exports.updateContactAddress = factory.updateSubOne(User, 'contactAddress');
 exports.removingContactAddress = factory.deleteSubOne(User, 'contactAddress');

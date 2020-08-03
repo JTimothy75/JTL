@@ -74,6 +74,7 @@ const userSchema = mongoose.Schema(
         }
       }
     ],
+    wishList: [mongoose.Schema.ObjectId],
 
     password: {
       type: String,

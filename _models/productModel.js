@@ -18,11 +18,7 @@ const productSchema = mongoose.Schema(
       ]
     },
     slug: String,
-    summary: {
-      type: String,
-      trim: true,
-      required: [true, 'A product must have a summary']
-    },
+    specification: Object,
     description: {
       type: String,
       required: [true, 'Please describe the product']
@@ -31,6 +27,12 @@ const productSchema = mongoose.Schema(
       type: Number
     },
     highPrice: {
+      type: Number
+    },
+    discountedLowPrice: {
+      type: Number
+    },
+    discountedHighPrice: {
       type: Number
     },
     colour: [
@@ -141,12 +143,15 @@ productSchema.pre('save', async function(next) {
     ).toFixed(2);
   });
 
-  this.lowPrice = Math.min(...this.colour.map(el => el.discountPrice)).toFixed(
-    2
-  );
-  this.highPrice = Math.max(...this.colour.map(el => el.discountPrice)).toFixed(
-    2
-  );
+  this.lowPrice = Math.min(...this.colour.map(el => el.price)).toFixed(2);
+  this.highPrice = Math.max(...this.colour.map(el => el.price)).toFixed(2);
+
+  this.discountedLowPrice = Math.min(
+    ...this.colour.map(el => el.discountPrice)
+  ).toFixed(2);
+  this.discountedHighPrice = Math.max(
+    ...this.colour.map(el => el.discountPrice)
+  ).toFixed(2);
 
   this.slug = slugify(this.name, { lower: true });
 
