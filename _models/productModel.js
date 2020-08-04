@@ -40,8 +40,7 @@ const productSchema = mongoose.Schema(
         colour: {
           type: String,
           required: [true, 'Please tell us the colour of this product'],
-          trim: true,
-          unique: true
+          trim: true
         },
         quantity: {
           type: Number,
