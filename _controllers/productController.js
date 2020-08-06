@@ -1,11 +1,40 @@
+const AWS = require('aws-sdk');
 const multer = require('multer');
 const sharp = require('sharp');
+
 // const { Promise } = require('mongoose');
 
 const Product = require('../_models/productModel');
 const catchAsync = require('../_utilities/catchAsync');
 const AppError = require('../_utilities/appError');
 const factory = require('./handlerFactory');
+
+// Create object upload promise
+const awsBucket = new AWS.S3({
+  accessKeyId: process.env.AWS_ACCESS_KEY,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  region: 'us-east-2'
+});
+
+const awsUpload = async (file, name) => {
+  try {
+    // Create params for putObject call
+    const objectParams = {
+      Bucket: process.env.AWS_BUCKET_NAME,
+      Key: name,
+      Body: file,
+      ACL: 'public-read'
+    };
+
+    awsBucket.putObject(objectParams).promise();
+  } catch (err) {
+    if (err) {
+      return false;
+    }
+  }
+
+  return true;
+};
 
 const multerStorage = multer.memoryStorage();
 
@@ -38,14 +67,16 @@ const resizeProductImages = async (files, productId, newProduct) => {
     uploadName.imageCover = `product-${productId}-${Date.now()}-cover.jpeg`;
     uploadName.images = [uploadName.imageCover];
 
-    await sharp(files.imageCover[0].buffer)
+    const imageFile = await sharp(files.imageCover[0].buffer)
       .resize(1500, 1500, {
         fit: 'contain',
         background: { r: 255, g: 255, b: 255, alpha: 1 }
       })
       .toFormat('jpeg')
       .jpeg({ quality: 90 })
-      .toFile(`_public/img/products/${uploadName.imageCover}`);
+      .toBuffer();
+    // .toFile(`_public/img/products/${uploadName.imageCover}`);
+    awsUpload(imageFile, `products/${uploadName.imageCover}`);
   }
 
   if (files.colourImage) {
@@ -53,14 +84,16 @@ const resizeProductImages = async (files, productId, newProduct) => {
       files.colourImage[0].colour
     }.jpeg`;
 
-    await sharp(files.colourImage[0].buffer)
+    const imageFile = await sharp(files.colourImage[0].buffer)
       .resize(1500, 1500, {
         fit: 'contain',
         background: { r: 255, g: 255, b: 255, alpha: 1 }
       })
       .toFormat('jpeg')
       .jpeg({ quality: 90 })
-      .toFile(`_public/img/products/${uploadName.colourImage}`);
+      .toBuffer();
+    // .toFile(`_public/img/products/${uploadName.colourImage}`);
+    awsUpload(imageFile, `products/${uploadName.colourImage}`);
   }
 
   if (files.images) {
@@ -70,14 +103,16 @@ const resizeProductImages = async (files, productId, newProduct) => {
     await Promise.all(
       files.images.map(async (file, i) => {
         const filename = `product-${productId}-${Date.now()}-${i + 1}.jpeg`;
-        await sharp(file.buffer)
+        const imageFile = await sharp(file.buffer)
           .resize(1500, 1500, {
             fit: 'contain',
             background: { r: 255, g: 255, b: 255, alpha: 1 }
           })
           .toFormat('jpeg')
           .jpeg({ quality: 90 })
-          .toFile(`_public/img/products/${filename}`);
+          .toBuffer();
+        // .toFile(`_public/img/products/${filename}`);
+        awsUpload(imageFile, `products/${filename}`);
 
         uploadName.images.push(filename);
       })
