@@ -36,6 +36,18 @@ const awsUpload = async (file, name) => {
   return true;
 };
 
+const imageFormatAndUpload = async (size, image, fileName) => {
+  const proccessImageFile = await sharp(image)
+    .resize(size, size, {
+      fit: 'contain',
+      background: { r: 255, g: 255, b: 22, alpha: 1 }
+    })
+    .toFormat('jpeg')
+    .jpeg({ quality: 90 })
+    .toBuffer();
+  awsUpload(proccessImageFile, `products/${size}x${size}_${fileName}`);
+};
+
 const multerStorage = multer.memoryStorage();
 
 const multerFilter = (req, file, cb) => {
@@ -67,16 +79,33 @@ const resizeProductImages = async (files, productId, newProduct) => {
     uploadName.imageCover = `product-${productId}-${Date.now()}-cover.jpeg`;
     uploadName.images = [uploadName.imageCover];
 
-    const imageFile = await sharp(files.imageCover[0].buffer)
-      .resize(1500, 1500, {
-        fit: 'contain',
-        background: { r: 255, g: 255, b: 255, alpha: 1 }
-      })
-      .toFormat('jpeg')
-      .jpeg({ quality: 90 })
-      .toBuffer();
-    // .toFile(`_public/img/products/${uploadName.imageCover}`);
-    awsUpload(imageFile, `products/${uploadName.imageCover}`);
+    await imageFormatAndUpload(
+      800,
+      files.imageCover[0].buffer,
+      uploadName.imageCover
+    );
+
+    await imageFormatAndUpload(
+      250,
+      files.imageCover[0].buffer,
+      uploadName.imageCover
+    );
+
+    await imageFormatAndUpload(
+      75,
+      files.imageCover[0].buffer,
+      uploadName.imageCover
+    );
+
+    // const imageFile = await sharp(files.imageCover[0].buffer)
+    //   .resize(800, 800, {
+    //     fit: 'contain',
+    //     background: { r: 255, g: 255, b: 255, alpha: 1 }
+    //   })
+    //   .toFormat('jpeg')
+    //   .jpeg({ quality: 90 })
+    //   .toBuffer();
+    // awsUpload(imageFile, `products/${uploadName.imageCover}`);
   }
 
   if (files.colourImage) {
@@ -84,16 +113,33 @@ const resizeProductImages = async (files, productId, newProduct) => {
       files.colourImage[0].colour
     }.jpeg`;
 
-    const imageFile = await sharp(files.colourImage[0].buffer)
-      .resize(1500, 1500, {
-        fit: 'contain',
-        background: { r: 255, g: 255, b: 255, alpha: 1 }
-      })
-      .toFormat('jpeg')
-      .jpeg({ quality: 90 })
-      .toBuffer();
-    // .toFile(`_public/img/products/${uploadName.colourImage}`);
-    awsUpload(imageFile, `products/${uploadName.colourImage}`);
+    await imageFormatAndUpload(
+      800,
+      files.colourImage[0].buffer,
+      uploadName.colourImage
+    );
+
+    await imageFormatAndUpload(
+      250,
+      files.colourImage[0].buffer,
+      uploadName.colourImage
+    );
+
+    await imageFormatAndUpload(
+      75,
+      files.colourImage[0].buffer,
+      uploadName.colourImage
+    );
+
+    // const imageFile = await sharp(files.colourImage[0].buffer)
+    //   .resize(800, 800, {
+    //     fit: 'contain',
+    //     background: { r: 255, g: 255, b: 255, alpha: 1 }
+    //   })
+    //   .toFormat('jpeg')
+    //   .jpeg({ quality: 90 })
+    //   .toBuffer();
+    // awsUpload(imageFile, `products/${uploadName.colourImage}`);
   }
 
   if (files.images) {
@@ -102,19 +148,36 @@ const resizeProductImages = async (files, productId, newProduct) => {
     }
     await Promise.all(
       files.images.map(async (file, i) => {
-        const filename = `product-${productId}-${Date.now()}-${i + 1}.jpeg`;
-        const imageFile = await sharp(file.buffer)
-          .resize(1500, 1500, {
-            fit: 'contain',
-            background: { r: 255, g: 255, b: 255, alpha: 1 }
-          })
-          .toFormat('jpeg')
-          .jpeg({ quality: 90 })
-          .toBuffer();
-        // .toFile(`_public/img/products/${filename}`);
-        awsUpload(imageFile, `products/${filename}`);
+        const fileName = `product-${productId}-${Date.now()}-${i + 1}.jpeg`;
+        // const imageFile = await sharp(file.buffer)
+        //   .resize(800, 800, {
+        //     fit: 'contain',
+        //     background: { r: 255, g: 255, b: 255, alpha: 1 }
+        //   })
+        //   .toFormat('jpeg')
+        //   .jpeg({ quality: 90 })
+        //   .toBuffer();
+        // awsUpload(imageFile, `products/${fileName}`);
 
-        uploadName.images.push(filename);
+        await imageFormatAndUpload(800, file.buffer, fileName);
+        await imageFormatAndUpload(250, file.buffer, fileName);
+        await imageFormatAndUpload(75, file.buffer, fileName);
+
+        // const imageFile250x250 = await sharp(imageFile)
+        //   .resize(250, 250)
+        //   .toFormat('jpeg')
+        //   .jpeg({ quality: 90 })
+        //   .toBuffer();
+        // awsUpload(imageFile250x250, `products/250x250_${fileName}`);
+
+        // const imageFile75x75 = await sharp(imageFile)
+        //   .resize(75, 75)
+        //   .toFormat('jpeg')
+        //   .jpeg({ quality: 90 })
+        //   .toBuffer();
+        // awsUpload(imageFile75x75, `products/75x75_${fileName}`);
+
+        uploadName.images.push(fileName);
       })
     );
   }
