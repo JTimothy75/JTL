@@ -11,7 +11,7 @@ const imageFormatAndUpload = async (size, image, fileName) => {
   const proccessImageFile = await sharp(image)
     .resize(size, size, {
       fit: 'contain',
-      background: { r: 255, g: 255, b: 22, alpha: 1 }
+      background: { r: 255, g: 255, b: 255, alpha: 1 }
     })
     .toFormat('jpeg')
     .jpeg({ quality: 90 })

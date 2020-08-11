@@ -28,7 +28,10 @@ const resizeProductImages = async (file, categoryId) => {
   const imageName = `category-${categoryId}-${Date.now()}.jpeg`;
 
   const categoryImage = await sharp(file)
-    .resize(150, 150)
+    .resize(150, 150, {
+      fit: 'contain',
+      background: { r: 255, g: 255, b: 255, alpha: 1 }
+    })
     .toFormat('jpeg')
     .jpeg({ quality: 90 })
     .toBuffer();
