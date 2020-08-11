@@ -6,20 +6,9 @@ const catchAsync = require('../_utilities/catchAsync');
 const AppError = require('../_utilities/appError');
 const factory = require('./handlerFactory');
 const Order = require('../_models/orderModel');
+const awsUpload = require('../_utilities/awsManager');
 
 const multerStorage = multer.memoryStorage();
-
-exports.excludeAdmin = catchAsync(async (req, res, next) => {
-  req.specialQuery = { role: { $regex: 'user', $options: 'i' } };
-
-  next();
-});
-
-exports.adminOnly = catchAsync(async (req, res, next) => {
-  req.specialQuery = { role: { $regex: 'admin|manager', $options: 'i' } };
-
-  next();
-});
 
 const multerFilter = (req, file, cb) => {
   if (file.mimetype.startsWith('image')) {
@@ -39,13 +28,15 @@ exports.uploadUserPhoto = upload.single('photo');
 exports.resizeUserPhoto = catchAsync(async (req, res, next) => {
   if (!req.file) return next();
 
-  req.file.filename = `user-${req.user.id}-${Date.now()}.jpeg`;
+  req.body.photo = `user-${req.user.id}-${Date.now()}.jpeg`;
 
-  await sharp(req.file.buffer)
+  const userPhoto = await sharp(req.file.buffer)
     .resize(500, 500)
     .toFormat('jpeg')
     .jpeg({ quality: 90 })
-    .toFile(`public/img/users/${req.file.filename}`);
+    .toBuffer();
+
+  awsUpload(userPhoto, `users/${req.body.photo}`);
 
   next();
 });
@@ -59,6 +50,18 @@ const filterObj = (obj, ...allowedFields) => {
   });
   return newObj;
 };
+
+exports.excludeAdmin = catchAsync(async (req, res, next) => {
+  req.specialQuery = { role: { $regex: 'user', $options: 'i' } };
+
+  next();
+});
+
+exports.adminOnly = catchAsync(async (req, res, next) => {
+  req.specialQuery = { role: { $regex: 'admin|manager', $options: 'i' } };
+
+  next();
+});
 
 exports.getMe = (req, res, next) => {
   req.params.id = req.user._id;

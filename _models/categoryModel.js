@@ -7,6 +7,11 @@ const categorySchema = mongoose.Schema(
       trim: true,
       required: [true, 'You can not create a category without name'],
       unique: true
+    },
+    image: {
+      type: String,
+      trim: true,
+      unique: true
     }
   },
   {

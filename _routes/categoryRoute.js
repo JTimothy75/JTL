@@ -10,6 +10,7 @@ router
   .post(
     authController.protect,
     authController.restrictTo('root_admin', 'admin', 'product_manager'),
+    categoryController.uploadImage,
     categoryController.createCategory
   );
 
@@ -19,6 +20,7 @@ router
   .patch(
     authController.protect,
     authController.restrictTo('root_admin', 'admin', 'product_manager'),
+    categoryController.uploadImage,
     categoryController.updateCategory
   )
   .delete(
