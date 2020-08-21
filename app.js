@@ -53,7 +53,7 @@ app.post(
 // Body parser, reading data from the body into req.body
 app.use(
   express.json({
-    limit: '10kb'
+    limit: '4000kb'
   })
 );
 
