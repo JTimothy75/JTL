@@ -18,19 +18,18 @@ const reviewRouter = require('./_routes/reviewRoute');
 const orderRouter = require('./_routes/orderRoute');
 const orderController = require('./_controllers/orderController');
 const errorController = require('./_controllers/errorController');
-const AppError = require('./_utilities/appError');
 
 const app = express();
 app.enable('trust proxy');
-app.use(cors());
-// Access-Control-Allow-Origin *
-// api.natours.com, front-end natours.com
-// app.use(cors({
-//   origin: 'https://www.natours.com'
-// }))
-
-app.options('*', cors());
-// app.options('/api/v1/tours/:id', cors());
+// app.use(cors());
+app.use(
+  cors({
+    origin: ['http://localhost:4200', 'http://127.0.0.1:5500'],
+    credentials: true,
+    allowedHeaders: 'Content-Type,Authorization',
+    exposedHeaders: 'Content-Range,X-Content-Range'
+  })
+);
 
 // Global Middlewares
 // Set security HTTP headers
@@ -74,6 +73,7 @@ app.use(
 );
 
 // Serving static file
+app.use(express.static(path.join(__dirname, 'dist/zola-scss')));
 app.use(express.static(path.join(__dirname, '_public')));
 app.use(morgan('dev'));
 
@@ -87,19 +87,8 @@ app.use('/api/v1/category', categoryRouter);
 app.use('/api/v1/review', reviewRouter);
 app.use('/api/v1/order', orderRouter);
 
-app.get('/', (req, res) => {
-  res.status(200).json({
-    status: 'success',
-    data: {
-      welcome: 'Welcome to JTL Accessories'
-    }
-  });
-});
-
-app.all('*', (req, res, next) => {
-  return next(
-    new AppError(`Can not find any route that matches ${req.originalUrl}`, 404)
-  );
+app.get('*', function(req, res) {
+  res.sendFile(path.join(__dirname, 'dist/zola-scss/index.html'));
 });
 
 app.use(errorController);
