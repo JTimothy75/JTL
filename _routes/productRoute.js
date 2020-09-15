@@ -14,7 +14,7 @@ router.get(
 );
 
 router.get(
-  // '/search/:searchString',
+  // /search?search=Prez
   '/search',
   productController.setSearchQuery,
   productController.getSearchedProduct
